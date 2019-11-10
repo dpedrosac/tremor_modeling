@@ -1,7 +1,7 @@
-function [mtrc, f] = metric_estimate(dat1, dat2, fs, metric, norm)
+function [mtrc, f] = metric_estimate(dat, fs, metric, norm)
 
 % INPUT:
-%   - dat1/2    = datasets from which metric will be computed
+%   - dat       = dataset from which metric will be computed
 %   - fs        = sampling frequency
 %   - metric    = metric to be estimated ('psd', 'coh')
 %   - norm      = normalisation to M = 0, STD = 1 (boolean)
@@ -32,17 +32,54 @@ else
     fx_norm = @(x) x;
 end
 
+% General settings
+ch = size(dat{1},2);
+nwin    = fs;                                                             % start estimating PSD using welch's method with half a second
+overlap = nwin/2;                                                           % windows and 50%-overlap
+freq    = 1:.5:100;                                                         % frequency vector
+
 switch metric
     case 'psd'
-        if ~isemtpy(dat2)
-            warning('only data from first inpu will be preocessed')
-        end
+        fprintf('\n estimating PSD for all channels ...')
+        [psd,fall]    = arrayfun(@(q) ...                                   % estimate PSD via Welch's method
+            pwelch(fx_norm(dat{q}), nwin, overlap, freq, fs), ...
+            1:numel(dat), 'Un', 0);
         
-        [mtrc,f] = pwelch(fx_norm(dat1), window, .5, [0 100], fs);
-
+        mtrc = cell(1,numel(dat));                                         % create identity matrix with psd values
+        for n = 1:numel(dat)
+            for nch = 1:ch
+                mtrc{1,n}{nch,nch}= psd{1,n}(:,nch);
+            end
+        end
+        f = fall{1};
+        fprintf('DONE! ...\n')
+        
     case 'coh'
-        if (isemtpy(dat2) || isnan(dat2))
-            error('two different datasets are required for estimating coherence')
-        end
+        [mtrc, f] = metric_estimate(dat, fs, 'psd', 1);                     % the diagonal is the PSD estimate from the first part of the script
+        idx = triu(ones(size(dat{1},2)), 1);                                % upper diagonal used to estimate
         
+        fprintf('\n estimating coherence between all channels ...\n')
+        p = progressbar( numel(dat)*sum(idx(:)), 'percent' ); iter= 0;      % JSB routine for progress bars
+        for depth = 1:numel(dat)
+            for row = 1:ch
+                for col = 1:ch
+                    if idx(row, col)==0
+                        continue
+                    else
+                        iter = iter+1;
+                        p.update( iter )
+                        [mtrc{depth}{row,col}, f] = ...
+                            mscohere(fx_norm(dat{depth}(:,row)), ...
+                            fx_norm(dat{depth}(:,col)), ...
+                            nwin, overlap, freq, fs);
+                    end
+                end
+            end
+        end
+        p.stop()
+        fprintf('DONE! ...\n')
+        
+    case 'pcd'
+        fprintf('\n not yet implemented, returning ...\n')
+        return
 end

@@ -43,12 +43,15 @@ switch metric
     case 'raw'
         x = trials; y = time;
         tit1 = 'Power of VLp/EMG-recordings at ';
+    case 'psd'
+        
+        
 end
 
 % loads general information for plotting and estimating rows and columns
 p   = figure_params_gen;                                                    % load general parameters for plots
-nRow = size(x{1},2) - numel(idx_emg);                                      % number of rows
-rowH = 0.7 / nRow ;  colW = 0.85 / nCol ;                                    % defines the row-height and the column-width for the subplots
+nRow = size(x{1},2) - numel(idx_emg);                                       % number of rows
+rowH = 0.7 / nRow ;  colW = 0.85 / nCol ;                                   % defines the row-height and the column-width for the subplots
 colX = 0.15 + linspace( 0, 0.96, nCol+1 ) ;  colX = colX(1:end-1);          % array defining the settings for the subplots
 rowY = 0.1 + linspace( 0.9, 0, nRow+1 ) ;  rowY = rowY(2:end) ;
 
@@ -92,6 +95,5 @@ for k = 1:size(trials,2)
     set( gca, 'Color', 'None', 'XColor', 'White', 'YColor', 'White' ) ;
     text( 0.5, 0, strcat(tit1, tit2), 'FontName', p.ftname, 'FontSize', p.ftsize(2), 'FontWeight', 'Bold', ...
         'HorizontalAlignment', 'Center', 'VerticalAlignment', 'Bottom' ) ;
-    
     linkaxes(ax, 'x')
 end
